@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Shield, Home, Loader, LogOut, Download } from 'lucide-react';
+import { Shield, Loader, LogOut, Download, X } from 'lucide-react';
 
 import { supabase, isSupabaseConfigured } from './config/supabase';
 import { getProfile, ensureProfile, signOut } from './lib/db';
@@ -16,13 +16,26 @@ import AdminApp from './components/AdminApp';
 const VALID_ROLES = ['student', 'parent', 'driver', 'guard', 'admin'];
 
 /* -------------------------------------------------------------------------- */
-/*  PWA install prompt (unchanged from before)                                */
+/*  PWA install prompt                                                         */
 /* -------------------------------------------------------------------------- */
+// A slim, DISMISSIBLE bar pinned to the top so it never covers the booking
+// card / action buttons at the bottom of the screen. Once closed (or once the
+// app is installed) it stays hidden - we remember that in localStorage.
+const PWA_DISMISS_KEY = 'sakay_hide_install_prompt';
+
 const PWAInstallPrompt = () => {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
+    let dismissed = false;
+    try {
+      dismissed = localStorage.getItem(PWA_DISMISS_KEY) === '1';
+    } catch {
+      /* private mode - just show it */
+    }
+    if (dismissed) return;
+
     const handler = (e) => {
       e.preventDefault();
       setInstallPrompt(e);
@@ -32,31 +45,42 @@ const PWAInstallPrompt = () => {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
+  const hide = () => {
+    setIsVisible(false);
+    try {
+      localStorage.setItem(PWA_DISMISS_KEY, '1');
+    } catch {
+      /* ignore */
+    }
+  };
+
   const handleInstallClick = async () => {
     if (!installPrompt) return;
     installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === 'accepted') setIsVisible(false);
+    await installPrompt.userChoice;
+    hide();
   };
 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-20 left-4 right-4 z-[9999] bg-indigo-600 text-white p-4 rounded-2xl shadow-2xl flex items-center justify-between animate-bounce">
-      <div className="flex items-center gap-3">
-        <div className="bg-white/20 p-2 rounded-lg">
-          <Download size={20} />
-        </div>
-        <div>
-          <p className="text-sm font-bold leading-tight">Install SAKAY App</p>
-          <p className="text-[10px] opacity-80 uppercase font-black">Fast access & Full Screen</p>
-        </div>
-      </div>
+    <div className="fixed top-12 left-3 right-3 z-[9999] bg-indigo-600/95 backdrop-blur text-white py-2 px-3 rounded-xl shadow-2xl flex items-center gap-2">
+      <Download size={16} className="shrink-0" />
+      <p className="text-[11px] font-bold leading-tight flex-grow">
+        Install SAKAY for full-screen access
+      </p>
       <button
         onClick={handleInstallClick}
-        className="bg-white text-indigo-600 px-4 py-2 rounded-xl text-xs font-black shadow-lg active:scale-95"
+        className="bg-white text-indigo-600 px-3 py-1 rounded-lg text-[10px] font-black shrink-0 active:scale-95"
       >
         INSTALL
+      </button>
+      <button
+        onClick={hide}
+        aria-label="Dismiss"
+        className="p-1 text-white/80 hover:text-white shrink-0"
+      >
+        <X size={16} />
       </button>
     </div>
   );

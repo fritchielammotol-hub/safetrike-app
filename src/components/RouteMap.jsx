@@ -1,10 +1,13 @@
 import React, { useMemo, useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
+import {
+  MapContainer, TileLayer, Marker, Polyline, useMapEvents, useMap,
+} from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Navigation, Clock } from 'lucide-react';
 
 import { DEFAULT_LAT, DEFAULT_LNG } from '../config/supabase';
 import { useLiveRoute } from '../hooks/useLiveRoute';
+import { useRoadRoute } from '../hooks/useRoadRoute';
 import { estimateEtaMinutes, formatDistance } from '../lib/eta';
 import { haversineKm } from '../lib/geo';
 import { pinIcon, dotIcon } from '../lib/mapIcons';
@@ -16,6 +19,25 @@ const DEST_ICON = pinIcon('#dc2626');
 function MapClick({ onPick }) {
   // Fires for every tap/click on the map surface.
   useMapEvents({ click: (e) => onPick && onPick(e.latlng) });
+  return null;
+}
+
+// The map often mounts before its (absolutely-positioned) container has its
+// final size, which leaves Leaflet's SVG layer at 0x0 so polylines render as
+// "M0 0". Recalculating the size after paint - and on window resize - fixes it.
+function FixMapSize() {
+  const map = useMap();
+  useEffect(() => {
+    const kick = () => map.invalidateSize();
+    const t1 = setTimeout(kick, 60);
+    const t2 = setTimeout(kick, 350);
+    window.addEventListener('resize', kick);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', kick);
+    };
+  }, [map]);
   return null;
 }
 
@@ -60,6 +82,9 @@ const RouteMap = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rawPos, speedKmh]);
 
+  // Bonus: the actual street route between pickup and destination (OSRM).
+  const { line: roadLine } = useRoadRoute(origin, destination);
+
   // Feature 3: recompute ETA every time the driver position / speed updates.
   const eta = useMemo(() => {
     if (!tracking || !rawPos || !destination) return null;
@@ -83,17 +108,42 @@ const RouteMap = ({
         zoomControl={false}
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        <FixMapSize />
+
+        {/* Planned route along the streets (OSRM). Falls back to a straight
+            dashed line between the pins if the routing server is unavailable.
+            The `key` forces a clean re-mount when the geometry switches from
+            the straight fallback to the real road line. */}
+        {origin && destination && (
+          <Polyline
+            key={roadLine ? 'road' : 'straight'}
+            positions={
+              roadLine && roadLine.length > 1
+                ? roadLine
+                : [
+                    [origin.lat, origin.lng],
+                    [destination.lat, destination.lng],
+                  ]
+            }
+            pathOptions={{
+              color: '#1e293b',
+              weight: 4,
+              opacity: 0.6,
+              dashArray: roadLine ? undefined : '8 8',
+            }}
+          />
+        )}
 
         {origin && <Marker position={[origin.lat, origin.lng]} icon={ORIGIN_ICON} />}
         {destination && (
           <Marker position={[destination.lat, destination.lng]} icon={DEST_ICON} />
         )}
 
-        {/* Route trail + moving driver marker */}
+        {/* Actual GPS trail travelled so far + moving driver marker */}
         {trail.length > 1 && (
           <Polyline
             positions={trail.map((p) => [p.lat, p.lng])}
-            pathOptions={{ color: markerColor, weight: 5, opacity: 0.7 }}
+            pathOptions={{ color: markerColor, weight: 5, opacity: 0.85 }}
           />
         )}
         {markerPos && tracking && (
