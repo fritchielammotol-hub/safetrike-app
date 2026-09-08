@@ -142,8 +142,8 @@ const StudentApp = ({ user, profile }) => {
         <History size={18} className="text-blue-600" />
       </button>
 
-      <div className="relative h-full w-full pointer-events-none flex flex-col justify-end p-4 z-10">
-        <div className="pointer-events-auto w-full max-w-md mx-auto bg-white p-6 rounded-[40px] shadow-2xl border-t border-slate-100 space-y-4 max-h-[80vh] overflow-y-auto">
+      <div className="absolute inset-0 pointer-events-none flex flex-col justify-end p-4 z-20">
+        <div className="pointer-events-auto w-full max-w-md mx-auto bg-white p-6 rounded-[40px] shadow-2xl border-t border-slate-100 space-y-4 max-h-[75vh] overflow-y-auto">
           {!activeRide ? (
             <div className="space-y-4">
               <div className="flex justify-between items-center px-1">

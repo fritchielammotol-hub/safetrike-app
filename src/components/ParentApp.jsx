@@ -182,8 +182,8 @@ const ParentApp = ({ user }) => {
         <History size={18} className="text-indigo-600" />
       </button>
 
-      {/* Overlay UI */}
-      <div className="absolute inset-0 z-10 pointer-events-none flex flex-col justify-end p-4">
+      {/* Overlay UI - sits ABOVE the map (RouteMap is z-0) */}
+      <div className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-end p-4">
         <div className="pointer-events-auto flex justify-between items-start mb-auto mt-16">
           {tracking && driverLivePos && (
             <button
@@ -238,8 +238,8 @@ const ParentApp = ({ user }) => {
         )}
 
         {/* Bottom card */}
-        <div className="pointer-events-auto">
-          <div className="bg-white p-6 rounded-[40px] shadow-2xl border-t-4 border-indigo-600 max-h-[80vh] overflow-y-auto">
+        <div className="pointer-events-auto w-full max-w-md mx-auto">
+          <div className="bg-white p-6 rounded-[40px] shadow-2xl border-t-4 border-indigo-600 max-h-[75vh] overflow-y-auto">
             {!activeRide ? (
               /* -------- booking form -------- */
               <div className="space-y-4">

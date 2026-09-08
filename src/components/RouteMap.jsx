@@ -72,7 +72,10 @@ const RouteMap = ({
   const center = origin || destination || { lat: DEFAULT_LAT, lng: DEFAULT_LNG };
 
   return (
-    <div className="absolute inset-0">
+    // `z-0` (an explicit z-index, not `auto`) makes this a stacking context so
+    // Leaflet's own panes/controls (z-index up to 1000) stay BEHIND the UI
+    // overlays that the Parent/Student screens draw on top (z-10+).
+    <div className="absolute inset-0 z-0">
       <MapContainer
         center={[center.lat, center.lng]}
         zoom={15}
