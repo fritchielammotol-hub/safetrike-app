@@ -6,12 +6,12 @@ import {
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
-import { supabase, DEFAULT_LAT, DEFAULT_LNG } from '../config/supabase';
-import { createRide, updateRide, getProfile, subscribeToChanges } from '../lib/db';
+import { DEFAULT_LAT, DEFAULT_LNG } from '../config/supabase';
+import {
+  createRide, updateRide, getProfile, subscribeToChanges, getActiveRideForUser,
+} from '../lib/db';
 import RouteMap from './RouteMap';
 import TripHistory from './TripHistory';
-
-const LIVE_STATUSES = ['Requested', 'Accepted', 'Picked Up', 'In Progress', 'Completed'];
 
 const StudentApp = ({ user, profile }) => {
   const studentId = user.id;
@@ -39,14 +39,8 @@ const StudentApp = ({ user, profile }) => {
 
   /* --------------------------- active ride --------------------------- */
   const refreshRide = useCallback(async () => {
-    const { data } = await supabase
-      .from('rides')
-      .select('*')
-      .eq('student_id', studentId)
-      .in('status', LIVE_STATUSES)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    setActiveRide(data && data[0] ? data[0] : null);
+    // In-progress ride, or a finished one still awaiting a rating.
+    setActiveRide(await getActiveRideForUser(studentId));
   }, [studentId]);
 
   useEffect(() => {
@@ -109,7 +103,12 @@ const StudentApp = ({ user, profile }) => {
 
   const submitFeedback = async () => {
     await updateRide(activeRide.id, { rating, comment });
-    window.location.reload();
+    // Rated -> no longer an active ride. Reset and go back to booking.
+    setShowFeedback(false);
+    setRating(5);
+    setComment('');
+    setActiveRide(null);
+    refreshRide();
   };
 
   const tracking =

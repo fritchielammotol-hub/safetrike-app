@@ -6,16 +6,14 @@ import {
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 
-import { supabase, DEFAULT_LAT, DEFAULT_LNG } from '../config/supabase';
+import { DEFAULT_LAT, DEFAULT_LNG } from '../config/supabase';
 import {
   createRide, updateRide, getProfile, createAlert, subscribeToChanges,
+  getActiveRideForUser,
 } from '../lib/db';
 import { useGeofence } from '../hooks/useGeofence';
 import RouteMap from './RouteMap';
 import TripHistory from './TripHistory';
-
-// Ride states the parent still needs to watch.
-const LIVE_STATUSES = ['Requested', 'Accepted', 'Picked Up', 'In Progress', 'Completed'];
 
 const ParentApp = ({ user }) => {
   const familyId = user.id; // the parent's id ties the family's rides together
@@ -42,14 +40,9 @@ const ParentApp = ({ user }) => {
 
   /* --------------------------- load active ride --------------------------- */
   const refreshRide = useCallback(async () => {
-    const { data } = await supabase
-      .from('rides')
-      .select('*')
-      .eq('student_id', familyId)
-      .in('status', LIVE_STATUSES)
-      .order('created_at', { ascending: false })
-      .limit(1);
-    setActiveRide(data && data[0] ? data[0] : null);
+    // A ride in progress, or a finished ride still awaiting a rating.
+    // Once feedback is submitted this returns null -> booking form comes back.
+    setActiveRide(await getActiveRideForUser(familyId));
   }, [familyId]);
 
   useEffect(() => {
@@ -134,7 +127,13 @@ const ParentApp = ({ user }) => {
 
   const submitFeedback = async () => {
     await updateRide(activeRide.id, { rating, comment });
-    window.location.reload();
+    // Ride now has a rating -> it stops counting as "active". Reset the form
+    // state and re-check; the booking screen comes back.
+    setShowFeedback(false);
+    setRating(5);
+    setComment('');
+    setActiveRide(null);
+    refreshRide();
   };
 
   const origin = activeRide

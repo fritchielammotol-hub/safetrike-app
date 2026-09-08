@@ -70,6 +70,39 @@ export async function getRide(rideId) {
   return supabase.from('rides').select('*').eq('id', rideId).single();
 }
 
+// Ride states that mean "a trip is happening right now".
+const IN_PROGRESS_STATUSES = ['Requested', 'Accepted', 'Picked Up', 'In Progress'];
+
+/**
+ * The one ride a student / parent should currently be looking at:
+ *   - a ride that is still in progress, OR
+ *   - a just-finished ride they haven't rated yet (so the "Arrived / rate"
+ *     screen shows once, then goes away after feedback).
+ * Returns the ride object, or null when they're free to book again.
+ */
+export async function getActiveRideForUser(userId) {
+  // 1. Something in progress?
+  const { data: live } = await supabase
+    .from('rides')
+    .select('*')
+    .eq('student_id', userId)
+    .in('status', IN_PROGRESS_STATUSES)
+    .order('created_at', { ascending: false })
+    .limit(1);
+  if (live && live[0]) return live[0];
+
+  // 2. A completed ride still waiting for a rating?
+  const { data: unrated } = await supabase
+    .from('rides')
+    .select('*')
+    .eq('student_id', userId)
+    .eq('status', 'Completed')
+    .is('rating', null)
+    .order('completed_at', { ascending: false })
+    .limit(1);
+  return unrated && unrated[0] ? unrated[0] : null;
+}
+
 // Append one GPS point to a ride's recorded "path" trail.
 // We read the current array, push, and write it back. Fine for a demo; a
 // production app might use a separate points table instead.
