@@ -1,0 +1,27 @@
+{
+  "short_name": "SAKAY",
+  "name": "SAKAY: Student Safety App",
+  "icons": [
+    {
+    "src": "vite.svg",
+    "sizes": "32x32 48x48 72x72 96x96 128x128 256x256 512x512",
+    "type": "image/svg+xml"
+  },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "theme_color": "#0f172a",
+  "background_color": "#ffffff"
+}
