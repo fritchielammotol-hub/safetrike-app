@@ -1,6 +1,5 @@
 import React, { useMemo, useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { Navigation, Clock } from 'lucide-react';
 
@@ -8,25 +7,14 @@ import { DEFAULT_LAT, DEFAULT_LNG } from '../config/supabase';
 import { useLiveRoute } from '../hooks/useLiveRoute';
 import { estimateEtaMinutes, formatDistance } from '../lib/eta';
 import { haversineKm } from '../lib/geo';
+import { pinIcon, dotIcon } from '../lib/mapIcons';
 
-/* Leaflet's default marker images don't load under bundlers - point them at a CDN. */
-delete L.Icon.Default.prototype._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
+// Green = pickup / origin, Red = destination. Built once, reused.
+const ORIGIN_ICON = pinIcon('#16a34a');
+const DEST_ICON = pinIcon('#dc2626');
 
-// Small round coloured dot used for the live tricycle marker.
-const dotIcon = (color) =>
-  L.divIcon({
-    className: '',
-    html: `<div style="width:22px;height:22px;border-radius:9999px;background:${color};border:4px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.4)"></div>`,
-    iconSize: [22, 22],
-    iconAnchor: [11, 11],
-  });
-
-function ClickToSetDestination({ onPick }) {
+function MapClick({ onPick }) {
+  // Fires for every tap/click on the map surface.
   useMapEvents({ click: (e) => onPick && onPick(e.latlng) });
   return null;
 }
@@ -93,8 +81,10 @@ const RouteMap = ({
       >
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        {origin && <Marker position={[origin.lat, origin.lng]} />}
-        {destination && <Marker position={[destination.lat, destination.lng]} />}
+        {origin && <Marker position={[origin.lat, origin.lng]} icon={ORIGIN_ICON} />}
+        {destination && (
+          <Marker position={[destination.lat, destination.lng]} icon={DEST_ICON} />
+        )}
 
         {/* Route trail + moving driver marker */}
         {trail.length > 1 && (
@@ -110,7 +100,7 @@ const RouteMap = ({
           />
         )}
 
-        {onPickDestination && <ClickToSetDestination onPick={onPickDestination} />}
+        {onPickDestination && <MapClick onPick={onPickDestination} />}
       </MapContainer>
 
       {/* Feature 3: live ETA badge */}

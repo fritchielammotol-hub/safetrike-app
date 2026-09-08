@@ -5,6 +5,10 @@ import { X, Clock, MapPin, Banknote, CreditCard, ChevronRight, History } from 'l
 
 import { listTripHistory } from '../lib/db';
 import { formatDistance } from '../lib/eta';
+import { pinIcon } from '../lib/mapIcons'; // also applies the bundled-icon fix
+
+const ORIGIN_ICON = pinIcon('#16a34a');
+const DEST_ICON = pinIcon('#dc2626');
 
 /**
  * FEATURE 4 - Trip history log (viewer)
@@ -70,10 +74,10 @@ const TripDetail = ({ trip, onBack }) => {
           >
             <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
             {trip.origin_lat != null && (
-              <Marker position={[trip.origin_lat, trip.origin_lng]} />
+              <Marker position={[trip.origin_lat, trip.origin_lng]} icon={ORIGIN_ICON} />
             )}
             {trip.dest_lat != null && (
-              <Marker position={[trip.dest_lat, trip.dest_lng]} />
+              <Marker position={[trip.dest_lat, trip.dest_lng]} icon={DEST_ICON} />
             )}
             {path.length > 1 && (
               <Polyline
